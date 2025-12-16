@@ -163,3 +163,39 @@ export const analyzeComponentCompatibility = async (components: string[], projec
 
     return response.text || "No analysis available.";
 };
+
+export const analyzeVisionFrame = async (imageBase64: string, projectContext: string): Promise<string> => {
+    if (!genAI) initializeGemini();
+    if (!genAI) throw new Error("GenAI not initialized");
+
+    const prompt = `
+    You are Arduino Vision Mentor — a live vision assistant.
+    Project Context: ${projectContext}
+
+    Analyze the provided image frame of an Arduino/electronics setup.
+    Rules:
+    - If any detection indicates a connection between power rails of differing voltage or a direct short, immediately return a SAFETY WARNING: "Disconnect power and measure...".
+    - Prefer small, testable guidance.
+    - Verify if the visible components match the project context.
+    - Provide a structured response: "Status", "Safety Check", "Wiring Verification", "Next Step".
+    
+    Return the response in Markdown.
+    `;
+
+    const response = await genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                mimeType: 'image/jpeg',
+                data: imageBase64
+              }
+            },
+            { text: prompt }
+          ]
+        },
+    });
+
+    return response.text || "Unable to analyze frame.";
+};

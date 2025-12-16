@@ -18,6 +18,7 @@ void loop() {
 }`);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   const handleAnalyze = async () => {
     if (!code.trim()) return;
@@ -29,6 +30,16 @@ void loop() {
       setAnalysis("Error analyzing code. Please check your connection.");
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy code:', err);
     }
   };
 
@@ -49,7 +60,27 @@ void loop() {
           className="flex-1 w-full bg-[#1e1e1e] text-slate-300 font-mono text-sm p-4 outline-none resize-none"
           spellCheck={false}
         />
-        <div className="bg-slate-800 p-3 flex justify-end">
+        <div className="bg-slate-800 p-3 flex justify-end gap-3">
+           <button
+             onClick={handleCopy}
+             className={`px-4 py-2 rounded text-sm font-medium transition-all flex items-center border ${
+               isCopied 
+                 ? 'bg-green-500/10 border-green-500 text-green-400' 
+                 : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600 hover:text-white'
+             }`}
+           >
+             {isCopied ? (
+               <>
+                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                 Copied!
+               </>
+             ) : (
+               <>
+                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                 Copy Code
+               </>
+             )}
+           </button>
            <button
              onClick={handleAnalyze}
              disabled={isAnalyzing}
