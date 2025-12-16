@@ -1,12 +1,16 @@
+
 import React, { useState } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
 import ProjectLibrary from './components/ProjectLibrary';
 import LearningPath from './components/LearningPath';
 import ComponentDatabase from './components/ComponentDatabase';
+import CodeEditor from './components/CodeEditor';
+import Auth from './components/Auth';
 import { View, Project, UserProfile, Difficulty } from './types';
 
 const App: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentView, setCurrentView] = useState<View>(View.DASHBOARD);
   const [chatInitialMessage, setChatInitialMessage] = useState<string | undefined>(undefined);
   
@@ -24,6 +28,11 @@ const App: React.FC = () => {
     conceptsLearned: 12,
     streakDays: 5
   });
+
+  const handleLogin = (name: string) => {
+    setUserProfile(prev => ({ ...prev, name }));
+    setIsAuthenticated(true);
+  };
 
   const handleStartProject = (project: Project) => {
     setChatInitialMessage(`I want to start the project "${project.title}". Can you guide me through the required components and the circuit diagram first?`);
@@ -45,6 +54,8 @@ const App: React.FC = () => {
         return <LearningPath />;
       case View.COMPONENTS:
         return <ComponentDatabase userProfile={userProfile} onAskAI={handleAskAI} />;
+      case View.CODE_EDITOR:
+        return <CodeEditor />;
       case View.SETTINGS:
         return <div className="text-center text-slate-500 mt-20">Settings not implemented in this demo.</div>;
       case View.DASHBOARD:
@@ -177,6 +188,10 @@ const App: React.FC = () => {
         );
     }
   };
+
+  if (!isAuthenticated) {
+    return <Auth onLogin={handleLogin} />;
+  }
 
   return (
     <div className="flex h-screen bg-slate-50">

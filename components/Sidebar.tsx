@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { View } from '../types';
 
@@ -12,6 +13,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView }) => {
     { id: View.CHAT, label: 'AI Mentor Chat', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z' },
     { id: View.PROJECTS, label: 'Project Library', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
     { id: View.COMPONENTS, label: 'Component DB', icon: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4' },
+    { id: View.CODE_EDITOR, label: 'Code Editor', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4' },
     { id: View.LEARNING_PATH, label: 'Learning Path', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
   ];
 
@@ -46,11 +48,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView }) => {
       <div className="p-4 border-t border-slate-800">
         <div className="flex items-center space-x-3 px-4 py-2">
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-arduino-orange to-yellow-500 flex items-center justify-center text-xs font-bold">
-            JS
+            U
           </div>
           <div>
-            <p className="text-sm font-medium text-white">John Smith</p>
-            <p className="text-xs text-slate-500">Level: Intermediate</p>
+            <p className="text-sm font-medium text-white">User</p>
+            <p className="text-xs text-slate-500">Online</p>
           </div>
         </div>
       </div>

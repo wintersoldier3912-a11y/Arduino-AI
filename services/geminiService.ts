@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { SYSTEM_INSTRUCTION } from "../constants";
 
@@ -90,4 +91,25 @@ export const generateComponentRecommendation = async (query: string, skillLevel:
     });
 
     return response.text || "[]";
-}
+};
+
+export const analyzeCode = async (code: string): Promise<string> => {
+    if (!genAI) initializeGemini();
+    if (!genAI) throw new Error("GenAI not initialized");
+
+    const prompt = `Analyze the following Arduino C++ code for syntax errors, logical bugs, and best practices. 
+    Provide a concise summary of issues and a corrected version if necessary.
+    
+    Code:
+    \`\`\`cpp
+    ${code}
+    \`\`\`
+    `;
+
+    const response = await genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+    });
+
+    return response.text || "No analysis available.";
+};
