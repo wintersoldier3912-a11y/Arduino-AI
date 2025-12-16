@@ -113,3 +113,53 @@ export const analyzeCode = async (code: string): Promise<string> => {
 
     return response.text || "No analysis available.";
 };
+
+export const analyzeCircuit = async (description: string): Promise<string> => {
+    if (!genAI) initializeGemini();
+    if (!genAI) throw new Error("GenAI not initialized");
+
+    const prompt = `Analyze the following Arduino circuit description for connection errors, power issues, safety concerns, and potential improvements.
+    
+    Circuit Description:
+    ${description}
+    
+    Provide a structured report with:
+    1. Connection Logic Check
+    2. Power & Safety Analysis
+    3. Suggestions for improvement or necessary components (like resistors/capacitors).
+    `;
+
+    const response = await genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+    });
+
+    return response.text || "No analysis available.";
+};
+
+export const analyzeComponentCompatibility = async (components: string[], projectContext: string): Promise<string> => {
+    if (!genAI) initializeGemini();
+    if (!genAI) throw new Error("GenAI not initialized");
+
+    const prompt = `
+    Task: Analyze the compatibility of the following components for an Arduino project.
+    Selected Components: ${components.join(', ')}
+    Project Requirement/Context: "${projectContext || "General compatibility check"}"
+
+    Please provide a structured analysis covering:
+    1. **Voltage & Logic Levels**: Are there 3.3V/5V mismatches? Need level shifters?
+    2. **Pin Usage & Interfaces**: Potential conflicts (I2C addresses, SPI CS pins, UART usage, limited pins).
+    3. **Power Budget**: Rough estimate of current consumption vs Arduino limits.
+    4. **Missing Essentials**: Are resistors, capacitors, drivers, or external power sources likely needed?
+    5. **Recommendations**: Suggestions to improve the build or fix issues.
+    
+    Format the output in Markdown.
+    `;
+
+    const response = await genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+    });
+
+    return response.text || "No analysis available.";
+};

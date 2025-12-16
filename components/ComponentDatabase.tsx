@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Component, UserProfile, Difficulty } from '../types';
 import { MOCK_COMPONENTS } from '../constants';
-import { generateComponentRecommendation } from '../services/geminiService';
+import { generateComponentRecommendation, analyzeComponentCompatibility } from '../services/geminiService';
+import MarkdownRenderer from './MarkdownRenderer';
 
 interface ComponentDatabaseProps {
   userProfile: UserProfile;
@@ -18,6 +20,13 @@ const ComponentDatabase: React.FC<ComponentDatabaseProps> = ({ userProfile, onAs
   
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [isRecommending, setIsRecommending] = useState(false);
+
+  // Compatibility Analysis State
+  const [selectedComponentIds, setSelectedComponentIds] = useState<Set<string>>(new Set());
+  const [projectContext, setProjectContext] = useState('');
+  const [compatibilityReport, setCompatibilityReport] = useState<string | null>(null);
+  const [isAnalyzingCompatibility, setIsAnalyzingCompatibility] = useState(false);
+  const [showAnalysisPanel, setShowAnalysisPanel] = useState(true);
 
   // Persist filters when they change
   useEffect(() => {
@@ -59,6 +68,36 @@ const ComponentDatabase: React.FC<ComponentDatabaseProps> = ({ userProfile, onAs
     }
   };
 
+  const toggleSelection = (id: string) => {
+      setSelectedComponentIds(prev => {
+          const newSet = new Set(prev);
+          if (newSet.has(id)) {
+              newSet.delete(id);
+          } else {
+              newSet.add(id);
+          }
+          return newSet;
+      });
+  };
+
+  const handleCompatibilityCheck = async () => {
+      if (selectedComponentIds.size < 1) return;
+      setIsAnalyzingCompatibility(true);
+      
+      const selectedNames = MOCK_COMPONENTS
+        .filter(c => selectedComponentIds.has(c.id))
+        .map(c => c.name);
+      
+      try {
+          const report = await analyzeComponentCompatibility(selectedNames, projectContext);
+          setCompatibilityReport(report);
+      } catch (e) {
+          setCompatibilityReport("Error analyzing compatibility. Please try again.");
+      } finally {
+          setIsAnalyzingCompatibility(false);
+      }
+  };
+
   const getDifficultyColor = (diff: Difficulty) => {
     switch(diff) {
         case Difficulty.BEGINNER: return 'bg-green-100 text-green-700';
@@ -70,11 +109,11 @@ const ComponentDatabase: React.FC<ComponentDatabaseProps> = ({ userProfile, onAs
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-40">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Component Database</h2>
-          <p className="text-slate-500">Explore parts, pinouts, and datasheets.</p>
+          <p className="text-slate-500">Explore parts, pinouts, and check compatibility.</p>
         </div>
         <div className="flex gap-2">
             <button 
@@ -183,15 +222,29 @@ const ComponentDatabase: React.FC<ComponentDatabaseProps> = ({ userProfile, onAs
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredComponents.map(comp => (
-            <div key={comp.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-all group">
-                <div className="h-2 bg-gradient-to-r from-arduino-teal to-arduino-dark"></div>
+        {filteredComponents.map(comp => {
+            const isSelected = selectedComponentIds.has(comp.id);
+            return (
+            <div 
+                key={comp.id} 
+                className={`bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-all group ${isSelected ? 'border-arduino-teal ring-1 ring-arduino-teal' : 'border-slate-200'}`}
+            >
+                <div className={`h-2 ${isSelected ? 'bg-arduino-teal' : 'bg-gradient-to-r from-slate-300 to-slate-400'}`}></div>
                 <div className="p-5">
                     <div className="flex justify-between items-start mb-2">
                         <h3 className="font-bold text-lg text-slate-800 group-hover:text-arduino-teal transition-colors">{comp.name}</h3>
-                        <div className="flex flex-col items-end gap-1">
-                          <span className="text-xs px-2 py-1 bg-slate-100 rounded text-slate-600 font-medium">{comp.type}</span>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide ${getDifficultyColor(comp.difficulty)}`}>{comp.difficulty}</span>
+                        <div className="flex items-center gap-2">
+                           <div className="flex flex-col items-end gap-1">
+                             <span className="text-xs px-2 py-1 bg-slate-100 rounded text-slate-600 font-medium">{comp.type}</span>
+                             <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide ${getDifficultyColor(comp.difficulty)}`}>{comp.difficulty}</span>
+                           </div>
+                           <button
+                             onClick={() => toggleSelection(comp.id)}
+                             className={`w-6 h-6 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-arduino-teal border-arduino-teal text-white' : 'border-slate-300 text-transparent hover:border-arduino-teal'}`}
+                             title={isSelected ? "Remove from analysis" : "Select for compatibility analysis"}
+                           >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                           </button>
                         </div>
                     </div>
                     <p className="text-sm text-slate-600 mb-4 line-clamp-2">{comp.description}</p>
@@ -209,7 +262,6 @@ const ComponentDatabase: React.FC<ComponentDatabaseProps> = ({ userProfile, onAs
 
                     <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-1">
                         {comp.commonUses.slice(0, 3).map(use => {
-                            // Highlight matched keywords if they match the search term
                             const isMatch = searchTerm && use.toLowerCase().includes(searchTerm.toLowerCase());
                             return (
                                 <span key={use} className={`text-xs px-2 py-0.5 rounded transition-colors ${
@@ -232,7 +284,8 @@ const ComponentDatabase: React.FC<ComponentDatabaseProps> = ({ userProfile, onAs
                     </div>
                 </div>
             </div>
-        ))}
+            );
+        })}
         {filteredComponents.length === 0 && (
             <div className="col-span-full text-center py-12 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-300">
                 <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -248,6 +301,99 @@ const ComponentDatabase: React.FC<ComponentDatabaseProps> = ({ userProfile, onAs
             </div>
         )}
       </div>
+
+      {/* Compatibility Analysis Panel - Fixed Bottom */}
+      {selectedComponentIds.size > 0 && (
+          <div className="fixed bottom-0 left-0 md:left-64 right-0 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] border-t border-slate-200 z-20 transition-transform duration-300 ease-in-out">
+            {/* Header / Toggle */}
+            <div 
+                className="bg-slate-800 text-white px-6 py-2 flex justify-between items-center cursor-pointer"
+                onClick={() => setShowAnalysisPanel(!showAnalysisPanel)}
+            >
+                <div className="flex items-center space-x-2">
+                    <span className="font-bold">{selectedComponentIds.size} Components Selected</span>
+                    <span className="text-slate-400 text-sm hidden sm:inline">| Compatibility Checker</span>
+                </div>
+                <svg className={`w-5 h-5 transition-transform ${showAnalysisPanel ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+            </div>
+
+            {/* Panel Content */}
+            {showAnalysisPanel && (
+                <div className="p-6 max-h-[60vh] overflow-y-auto flex flex-col md:flex-row gap-6">
+                    <div className="flex-1 space-y-4">
+                        <div className="flex flex-wrap gap-2">
+                            {MOCK_COMPONENTS.filter(c => selectedComponentIds.has(c.id)).map(c => (
+                                <div key={c.id} className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-sm flex items-center border border-slate-200">
+                                    {c.name}
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); toggleSelection(c.id); }}
+                                        className="ml-2 text-slate-400 hover:text-red-500"
+                                    >
+                                        &times;
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Project Context (Optional)</label>
+                            <input
+                                type="text"
+                                value={projectContext}
+                                onChange={(e) => setProjectContext(e.target.value)}
+                                placeholder="e.g. Building a battery powered robot..."
+                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-arduino-teal outline-none"
+                            />
+                        </div>
+
+                        <div className="flex gap-3">
+                             <button
+                                onClick={handleCompatibilityCheck}
+                                disabled={isAnalyzingCompatibility}
+                                className="flex-1 bg-arduino-teal text-white py-2 rounded-lg font-bold hover:bg-arduino-dark transition-colors disabled:opacity-50 flex justify-center items-center"
+                             >
+                                {isAnalyzingCompatibility ? (
+                                    <>
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Analyzing...
+                                    </>
+                                ) : 'Analyze Compatibility'}
+                             </button>
+                             <button
+                                onClick={() => { setSelectedComponentIds(new Set()); setCompatibilityReport(null); }}
+                                className="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors"
+                             >
+                                Clear All
+                             </button>
+                        </div>
+                    </div>
+
+                    {/* Result Area */}
+                    <div className="flex-1 bg-slate-50 rounded-lg border border-slate-200 p-4 min-h-[200px] overflow-y-auto">
+                        {compatibilityReport ? (
+                            <div className="text-sm">
+                                <h4 className="font-bold text-slate-800 mb-2 flex items-center">
+                                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                                    Analysis Report
+                                </h4>
+                                <MarkdownRenderer content={compatibilityReport} />
+                            </div>
+                        ) : (
+                            <div className="h-full flex flex-col items-center justify-center text-slate-400 text-center">
+                                <svg className="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                <p className="text-sm">Select components and click Analyze to see if they work together.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+          </div>
+      )}
     </div>
   );
 };

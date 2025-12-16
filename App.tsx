@@ -6,6 +6,7 @@ import ProjectLibrary from './components/ProjectLibrary';
 import LearningPath from './components/LearningPath';
 import ComponentDatabase from './components/ComponentDatabase';
 import CodeEditor from './components/CodeEditor';
+import CircuitAnalyzer from './components/CircuitAnalyzer';
 import Auth from './components/Auth';
 import { View, Project, UserProfile, Difficulty } from './types';
 
@@ -56,6 +57,8 @@ const App: React.FC = () => {
         return <ComponentDatabase userProfile={userProfile} onAskAI={handleAskAI} />;
       case View.CODE_EDITOR:
         return <CodeEditor />;
+      case View.CIRCUIT_ANALYZER:
+        return <CircuitAnalyzer />;
       case View.SETTINGS:
         return <div className="text-center text-slate-500 mt-20">Settings not implemented in this demo.</div>;
       case View.DASHBOARD:
