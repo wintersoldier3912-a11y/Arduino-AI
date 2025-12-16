@@ -1,0 +1,5 @@
+{
+  "name": "Arduino AI Mentor",
+  "description": "An intelligent, adaptive learning assistant for Arduino enthusiasts. Features a conversational AI mentor, project recommendations, and interactive learning paths.",
+  "requestFramePermissions": []
+}
