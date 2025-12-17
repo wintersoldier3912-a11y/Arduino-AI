@@ -3,7 +3,7 @@ export enum View {
   DASHBOARD = 'DASHBOARD',
   CHAT = 'CHAT',
   PROJECTS = 'PROJECTS',
-  LEARNING_PATH = 'LEARNING_PATH',
+  LEARNING_PATH = 'LEARNING_PATH', // acts as TECHNICAL_REFERENCE
   COMPONENTS = 'COMPONENTS',
   CODE_EDITOR = 'CODE_EDITOR',
   CIRCUIT_ANALYZER = 'CIRCUIT_ANALYZER',
@@ -40,7 +40,7 @@ export interface Project {
 export interface Component {
   id: string;
   name: string;
-  type: 'Microcontroller' | 'Sensor' | 'Actuator' | 'Module' | 'Basic';
+  type: 'Microcontroller' | 'Sensor' | 'Actuator' | 'Module' | 'Basic' | 'Display' | 'Driver' | 'Communication' | 'Power' | 'IC';
   description: string;
   voltage: string;
   pins: string;
@@ -61,7 +61,4 @@ export interface UserProfile {
   name: string;
   skillLevel: Difficulty; // Overall calculated level
   skills: SkillMap;
-  projectsCompleted: number;
-  conceptsLearned: number;
-  streakDays: number;
 }

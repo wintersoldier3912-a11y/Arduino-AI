@@ -14,8 +14,10 @@ const ComponentDatabase: React.FC<ComponentDatabaseProps> = ({ userProfile, onAs
   // Initialize state from localStorage to persist user preferences
   const [searchTerm, setSearchTerm] = useState(() => localStorage.getItem('arduino_db_search') || '');
   const [filterType, setFilterType] = useState<string>(() => localStorage.getItem('arduino_db_type') || 'All');
+  
+  // Default difficulty to user's skill level if not set in local storage
   const [filterDifficulty, setFilterDifficulty] = useState<Difficulty | 'All'>(
-    () => (localStorage.getItem('arduino_db_difficulty') as Difficulty | 'All') || 'All'
+    () => (localStorage.getItem('arduino_db_difficulty') as Difficulty | 'All') || userProfile.skillLevel
   );
   
   const [recommendations, setRecommendations] = useState<any[]>([]);
@@ -261,7 +263,12 @@ const ComponentDatabase: React.FC<ComponentDatabaseProps> = ({ userProfile, onAs
                       className="w-full pl-9 pr-8 py-2.5 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-arduino-teal outline-none cursor-pointer appearance-none text-slate-700 font-medium hover:border-slate-400 transition-colors shadow-sm text-sm"
                       title="Filter by Difficulty"
                   >
-                      {uniqueDifficulties.map(d => <option key={d} value={d}>{d === 'All' ? 'All Levels' : d}</option>)}
+                      {uniqueDifficulties.map(d => (
+                          <option key={d} value={d}>
+                              {d === 'All' ? 'All Levels' : d}
+                              {d === userProfile.skillLevel ? ' (Recommended)' : ''}
+                          </option>
+                      ))}
                   </select>
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                     <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>

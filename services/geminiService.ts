@@ -200,25 +200,29 @@ export const analyzeVisionFrame = async (imageBase64: string, projectContext: st
     return response.text || "Unable to analyze frame.";
 };
 
-export const generateQuiz = async (topic: string, difficulty: string): Promise<string> => {
+export const generateConceptExplanation = async (concept: string, skillLevel: string): Promise<string> => {
     if (!genAI) initializeGemini();
     if (!genAI) throw new Error("GenAI not initialized");
 
-    const prompt = `Generate a short quiz about "${topic}" for a ${difficulty} level Arduino student.
-    Return a JSON array of 3 objects. Each object must have:
-    - "question": string
-    - "options": array of 4 strings
-    - "correctAnswerIndex": number (0-3)
-    - "explanation": string (brief explanation of why the answer is correct)
-    Do not use markdown formatting. Just raw JSON.`;
+    const prompt = `
+    Create a technical "Cheat Sheet" for the concept: "${concept}" specifically for an engineer with ${skillLevel} Arduino skills.
+    
+    Include:
+    1. **Technical Definition**: Concise engineering definition.
+    2. **How it Works**: Brief theory (e.g., timing diagrams for protocols, physics for sensors).
+    3. **Wiring/Pinout**: General connection guide (e.g., SDA/SCL for I2C).
+    4. **Code Snippet**: A minimal, copy-pasteable Arduino C++ example using best practices (non-blocking if possible).
+    5. **Common Pitfalls**: What usually goes wrong (e.g., floating pins, missing pull-ups).
+    
+    Format as clean Markdown.
+    `;
 
     const response = await genAI.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
-        config: { responseMimeType: 'application/json' }
     });
 
-    return response.text || "[]";
+    return response.text || "No explanation available.";
 };
 
 export const generateCustomProject = async (userIdea: string, skillLevel: string): Promise<string> => {

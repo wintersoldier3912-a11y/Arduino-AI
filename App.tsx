@@ -18,17 +18,14 @@ const App: React.FC = () => {
   
   // State for user profile and skills
   const [userProfile, setUserProfile] = useState<UserProfile>({
-    name: 'Maker',
+    name: 'Engineer',
     skillLevel: Difficulty.INTERMEDIATE,
     skills: {
         electronics: 0.4,
         programming: 0.6,
         iot: 0.2,
         debugging: 0.3
-    },
-    projectsCompleted: 3,
-    conceptsLearned: 12,
-    streakDays: 5
+    }
   });
 
   const handleLogin = (name: string) => {
@@ -52,7 +49,7 @@ const App: React.FC = () => {
         return <ChatInterface initialMessage={chatInitialMessage} userProfile={userProfile} />;
       case View.PROJECTS:
         return <ProjectLibrary onStartProject={handleStartProject} userProfile={userProfile} />;
-      case View.LEARNING_PATH:
+      case View.LEARNING_PATH: // Now Reference Hub
         return <LearningPath userProfile={userProfile} />;
       case View.COMPONENTS:
         return <ComponentDatabase userProfile={userProfile} onAskAI={handleAskAI} />;
@@ -68,125 +65,111 @@ const App: React.FC = () => {
       default:
         return (
           <div className="space-y-8">
-            <div className="bg-gradient-to-r from-arduino-teal to-blue-600 rounded-2xl p-8 text-white shadow-lg">
-                <h1 className="text-3xl font-bold mb-2">Welcome back, {userProfile.name}!</h1>
-                <p className="opacity-90 max-w-xl mb-6">You're on a {userProfile.streakDays}-day streak. Continue your "Digital I/O" module to unlock the next badge.</p>
-                <div className="flex gap-3">
-                    <button 
-                    onClick={() => setCurrentView(View.LEARNING_PATH)}
-                    className="bg-white text-arduino-teal px-6 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-all shadow"
-                    >
-                        Continue Learning
-                    </button>
-                    <button 
-                    onClick={() => setCurrentView(View.COMPONENTS)}
-                    className="bg-arduino-dark/40 border border-white/20 text-white px-6 py-2 rounded-lg font-bold hover:bg-arduino-dark/60 transition-all"
-                    >
-                        Browse Parts
-                    </button>
+            <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-8 text-white shadow-lg border border-slate-700">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <h1 className="text-3xl font-bold mb-2">Project Workspace</h1>
+                        <p className="opacity-80 max-w-xl">
+                            Ready to build? Select a tool or continue your work on "Distance Sensor Alarm".
+                        </p>
+                    </div>
+                    <div className="hidden md:block text-right">
+                         <div className="text-sm opacity-60 uppercase tracking-wider font-bold">Current Expertise</div>
+                         <div className="text-xl font-mono text-arduino-teal">{userProfile.skillLevel}</div>
+                    </div>
                 </div>
             </div>
 
-            {/* Skill Assessment Tracker */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-lg font-bold text-slate-800">Skill Proficiency</h2>
-                    <span className="text-xs bg-arduino-light text-arduino-dark px-2 py-1 rounded font-bold">
-                        Overall: {userProfile.skillLevel}
-                    </span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {Object.entries(userProfile.skills).map(([skill, level]) => (
-                        <div key={skill} className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                                <span className="capitalize text-slate-600 font-medium">{skill}</span>
-                                <span className="text-slate-800 font-bold">{Math.round((level as number) * 100)}%</span>
-                            </div>
-                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                                <div 
-                                    className="h-full bg-arduino-teal transition-all duration-1000"
-                                    style={{ width: `${(level as number) * 100}%` }}
-                                ></div>
-                            </div>
+            {/* Quick Tools Grid */}
+            <div>
+                <h2 className="text-lg font-bold text-slate-800 mb-4">Engineering Tools</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button 
+                        onClick={() => setCurrentView(View.CODE_EDITOR)}
+                        className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:border-arduino-teal hover:shadow-md transition-all text-left group"
+                    >
+                        <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
                         </div>
-                    ))}
-                </div>
-                <p className="text-xs text-slate-400 mt-6 text-center">
-                    Skills update automatically based on completed projects and AI interactions.
-                </p>
-            </div>
+                        <h3 className="font-bold text-slate-800">Code Workbench</h3>
+                        <p className="text-sm text-slate-500 mt-1">Write, validate, and optimize C++.</p>
+                    </button>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <div className="text-slate-500 text-sm font-medium mb-1">Projects Completed</div>
-                    <div className="text-3xl font-bold text-slate-800">{userProfile.projectsCompleted}</div>
-                </div>
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <div className="text-slate-500 text-sm font-medium mb-1">Concepts Learned</div>
-                    <div className="text-3xl font-bold text-slate-800">{userProfile.conceptsLearned}</div>
-                </div>
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <div className="text-slate-500 text-sm font-medium mb-1">Current Streak</div>
-                    <div className="text-3xl font-bold text-arduino-orange">{userProfile.streakDays} Days 🔥</div>
+                    <button 
+                        onClick={() => setCurrentView(View.CIRCUIT_ANALYZER)}
+                        className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:border-arduino-teal hover:shadow-md transition-all text-left group"
+                    >
+                        <div className="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center mb-3 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        </div>
+                        <h3 className="font-bold text-slate-800">Circuit Analyzer</h3>
+                        <p className="text-sm text-slate-500 mt-1">Verify logic and safety of connections.</p>
+                    </button>
+
+                    <button 
+                        onClick={() => setCurrentView(View.VISION)}
+                        className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:border-arduino-teal hover:shadow-md transition-all text-left group"
+                    >
+                        <div className="w-10 h-10 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center mb-3 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        </div>
+                        <h3 className="font-bold text-slate-800">Vision Assistant</h3>
+                        <p className="text-sm text-slate-500 mt-1">Real-time build verification via camera.</p>
+                    </button>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Recent Activity */}
+                {/* Active Projects */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 border-b border-slate-100 font-semibold text-slate-800">
-                        Recommended Next Steps
+                    <div className="px-6 py-4 border-b border-slate-100 font-semibold text-slate-800 flex justify-between items-center">
+                        <span>Suggested Builds</span>
+                        <button onClick={() => setCurrentView(View.PROJECTS)} className="text-sm text-arduino-teal hover:underline">View All</button>
                     </div>
-                    <div className="p-6 space-y-4">
+                    <div className="p-2">
                         <div 
                           onClick={() => handleStartProject({
-                              id: 'p4', title: 'Distance Sensor Alarm', description: '', difficulty: 'Intermediate' as any, timeEstimate: '', components: [], tags: [], completed: false
+                              id: 'p4', title: 'Distance Sensor Alarm', description: 'Intermediate', difficulty: 'Intermediate' as any, timeEstimate: '', components: [], tags: [], completed: false
                           })}
-                          className="flex items-start space-x-4 p-4 rounded-lg bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors"
+                          className="flex items-center space-x-4 p-4 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors border-b border-slate-50 last:border-0"
                         >
-                            <div className="w-10 h-10 rounded bg-green-100 text-green-600 flex items-center justify-center">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <div className="w-10 h-10 rounded bg-slate-100 text-slate-500 flex items-center justify-center font-bold">01</div>
+                            <div className="flex-1">
+                                <h4 className="font-bold text-slate-800">Distance Sensor Alarm</h4>
+                                <p className="text-xs text-slate-500">Ultrasonic Sensor • Piezo • Logic</p>
                             </div>
-                            <div>
-                                <h4 className="font-bold text-slate-800">Start "Distance Sensor Alarm"</h4>
-                                <p className="text-sm text-slate-500">Practice using ultrasonic sensors and `if/else` logic.</p>
-                            </div>
+                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-bold">Intermediate</span>
                         </div>
-                        <div 
-                          onClick={() => setCurrentView(View.CHAT)}
-                          className="flex items-start space-x-4 p-4 rounded-lg bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors"
+                         <div 
+                          onClick={() => handleStartProject({
+                              id: 'p6', title: 'WiFi Weather Station', description: 'Advanced', difficulty: 'Advanced' as any, timeEstimate: '', components: [], tags: [], completed: false
+                          })}
+                          className="flex items-center space-x-4 p-4 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
                         >
-                             <div className="w-10 h-10 rounded bg-blue-100 text-blue-600 flex items-center justify-center">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                            <div className="w-10 h-10 rounded bg-slate-100 text-slate-500 flex items-center justify-center font-bold">02</div>
+                            <div className="flex-1">
+                                <h4 className="font-bold text-slate-800">WiFi Weather Station</h4>
+                                <p className="text-xs text-slate-500">ESP32 • BME280 • IoT</p>
                             </div>
-                            <div>
-                                <h4 className="font-bold text-slate-800">Ask the Mentor</h4>
-                                <p className="text-sm text-slate-500">Stuck on a concept? The AI Mentor is ready to help.</p>
-                            </div>
+                            <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded font-bold">Advanced</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Quick Reference */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                {/* Reference Search Mini */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                     <div className="px-6 py-4 border-b border-slate-100 font-semibold text-slate-800">
-                        Pinout Reference (Uno)
+                        Quick Reference
                     </div>
-                    <div className="p-6">
-                        <div className="text-sm space-y-2">
-                             <div className="flex justify-between p-2 bg-slate-50 rounded">
-                                 <span className="font-mono text-slate-600">0 - 1</span>
-                                 <span className="text-slate-800 font-medium">Serial RX/TX</span>
-                             </div>
-                             <div className="flex justify-between p-2 bg-slate-50 rounded">
-                                 <span className="font-mono text-slate-600">2 - 13</span>
-                                 <span className="text-slate-800 font-medium">Digital I/O (PWM: ~3,5,6,9,10,11)</span>
-                             </div>
-                             <div className="flex justify-between p-2 bg-slate-50 rounded">
-                                 <span className="font-mono text-slate-600">A0 - A5</span>
-                                 <span className="text-slate-800 font-medium">Analog Inputs</span>
-                             </div>
-                        </div>
+                    <div className="p-6 flex-1 flex flex-col justify-center">
+                        <p className="text-sm text-slate-500 mb-4">Need to look up a protocol or component pinout quickly?</p>
+                        <button 
+                            onClick={() => setCurrentView(View.LEARNING_PATH)}
+                            className="w-full py-3 border-2 border-dashed border-slate-300 rounded-lg text-slate-500 hover:border-arduino-teal hover:text-arduino-teal transition-all flex items-center justify-center font-medium"
+                        >
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            Open Reference Hub
+                        </button>
                     </div>
                 </div>
             </div>
