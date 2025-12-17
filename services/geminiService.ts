@@ -97,8 +97,16 @@ export const analyzeCode = async (code: string): Promise<string> => {
     if (!genAI) initializeGemini();
     if (!genAI) throw new Error("GenAI not initialized");
 
-    const prompt = `Analyze the following Arduino C++ code for syntax errors, logical bugs, and best practices. 
-    Provide a concise summary of issues and a corrected version if necessary.
+    const prompt = `Analyze the following Arduino C++ code.
+    Return a JSON object with two keys:
+    1. "summary": A brief string summarizing the quality.
+    2. "issues": An array of objects, where each object has:
+       - "line": number (1-based line number of the issue)
+       - "severity": string ("error", "warning", or "info")
+       - "message": string (concise explanation)
+       - "suggestion": string (how to fix it)
+    
+    If the code is perfect, return an empty "issues" array.
     
     Code:
     \`\`\`cpp
@@ -109,9 +117,12 @@ export const analyzeCode = async (code: string): Promise<string> => {
     const response = await genAI.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
+        config: {
+            responseMimeType: 'application/json'
+        }
     });
 
-    return response.text || "No analysis available.";
+    return response.text || "{}";
 };
 
 export const analyzeCircuit = async (description: string): Promise<string> => {
@@ -223,6 +234,33 @@ export const generateConceptExplanation = async (concept: string, skillLevel: st
     });
 
     return response.text || "No explanation available.";
+};
+
+export const generateProjectReference = async (title: string, components: string[], skillLevel: string): Promise<string> => {
+    if (!genAI) initializeGemini();
+    if (!genAI) throw new Error("GenAI not initialized");
+
+    const prompt = `
+    Create a comprehensive "Technical Reference Guide" for the Arduino project: "${title}".
+    Target Audience: ${skillLevel} Engineer.
+    Components involved: ${components.join(', ')}.
+
+    The output must be a structured technical document including:
+    1. **System Architecture**: High-level block diagram description (textual).
+    2. **Hardware Theory**: Detailed operation of specific components (e.g. how the specific sensor communicates, voltage dividers if needed).
+    3. **Signal Integration**: Protocol details (I2C/SPI/UART), voltage logic levels, and power considerations.
+    4. **Firmware Strategy**: Logic flow description, memory management considerations, and library dependencies.
+    5. **Troubleshooting Matrix**: Common failure points, multimeter test points, and expected values.
+    
+    Format as clean Markdown.
+    `;
+
+    const response = await genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+    });
+
+    return response.text || "No guide available.";
 };
 
 export const generateCustomProject = async (userIdea: string, skillLevel: string): Promise<string> => {
