@@ -8,6 +8,7 @@ export enum View {
   CODE_EDITOR = 'CODE_EDITOR',
   CIRCUIT_ANALYZER = 'CIRCUIT_ANALYZER',
   VISION = 'VISION',
+  KNOWLEDGE_BASE = 'KNOWLEDGE_BASE',
   SETTINGS = 'SETTINGS',
   LOGIN = 'LOGIN'
 }
@@ -61,4 +62,12 @@ export interface UserProfile {
   name: string;
   skillLevel: Difficulty; // Overall calculated level
   skills: SkillMap;
+}
+
+export interface Dataset {
+  id: string;
+  name: string;
+  description: string;
+  content: string;
+  updatedAt: number;
 }

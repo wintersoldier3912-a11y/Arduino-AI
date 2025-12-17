@@ -1,14 +1,16 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { Message, UserProfile } from '../types';
+import { Message, UserProfile, Dataset } from '../types';
 import { sendMessageToGemini } from '../services/geminiService';
 import MarkdownRenderer from './MarkdownRenderer';
 
 interface ChatInterfaceProps {
   initialMessage?: string;
   userProfile: UserProfile;
+  datasets: Dataset[];
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialMessage, userProfile }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialMessage, userProfile, datasets }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -19,6 +21,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialMessage, userProfi
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedDatasetId, setSelectedDatasetId] = useState<string>('');
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -29,19 +33,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialMessage, userProfi
     scrollToBottom();
   }, [messages]);
 
-  // If initial message changes (from external trigger), add it
   useEffect(() => {
     if (initialMessage && messages[0].text !== initialMessage) {
-        // This is a simplified way to handle external triggers, in a real app check IDs
         setMessages(prev => [...prev, {
             id: Date.now().toString(),
             role: 'user',
             text: initialMessage,
             timestamp: Date.now()
         }]);
-        // Auto-send logic would go here if we wanted to auto-submit
-        // For now, we just populate the chat or let the user see it.
-        // If we want to auto-send the initial message:
         triggerSend(initialMessage);
     }
   }, [initialMessage]);
@@ -50,11 +49,27 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialMessage, userProfi
       if (isLoading) return;
       setIsLoading(true);
 
-      // We append a hidden system context to the message so the model knows the user's skill level
+      // Prepare Knowledge Base Context
+      let knowledgeContext = '';
+      if (selectedDatasetId) {
+          const ds = datasets.find(d => d.id === selectedDatasetId);
+          if (ds) {
+              knowledgeContext = `
+              \n[SYSTEM: KNOWLEDGE BASE ATTACHED]
+              The user has provided the following specific technical context. Use this information to answer if relevant.
+              --- START DATASET: ${ds.name} ---
+              ${ds.content}
+              --- END DATASET ---
+              `;
+          }
+      }
+
+      // We append a hidden system context to the message so the model knows the user's skill level and KB
       const contextPrompt = `
       [SYSTEM CONTEXT: User Skill Level: ${userProfile.skillLevel}. 
       Skill Breakdown: Electronics=${userProfile.skills.electronics.toFixed(2)}, Programming=${userProfile.skills.programming.toFixed(2)}, IoT=${userProfile.skills.iot.toFixed(2)}. 
       Adjust your explanation complexity accordingly.]
+      ${knowledgeContext}
       
       User Query: ${text}`;
 
@@ -129,9 +144,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialMessage, userProfi
            <h2 className="font-semibold text-slate-800">Arduino Mentor Chat</h2>
            <p className="text-xs text-slate-500">Powered by Gemini 2.5 • Adaptive Difficulty: {userProfile.skillLevel}</p>
         </div>
-        <div className="flex space-x-2">
-           <span className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
-           <span className="text-xs text-green-700 font-medium">Online</span>
+        
+        {/* Knowledge Base Selector */}
+        <div className="flex items-center gap-3">
+           <div className="hidden md:flex items-center bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
+               <svg className="w-4 h-4 text-slate-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+               <select 
+                 value={selectedDatasetId}
+                 onChange={(e) => setSelectedDatasetId(e.target.value)}
+                 className="text-xs text-slate-600 outline-none bg-transparent cursor-pointer max-w-[150px]"
+                 title="Attach a Knowledge Base to this chat session"
+               >
+                   <option value="">No Active Dataset</option>
+                   {datasets.map(ds => (
+                       <option key={ds.id} value={ds.id}>{ds.name}</option>
+                   ))}
+               </select>
+           </div>
+           
+           <div className="flex space-x-2 items-center">
+              <span className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+              <span className="text-xs text-green-700 font-medium hidden sm:inline">Online</span>
+           </div>
         </div>
       </div>
 
@@ -186,7 +220,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialMessage, userProfi
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyPress}
-            placeholder="Ask about your project, paste code, or describe a circuit..."
+            placeholder={selectedDatasetId ? `Asking with context from "${datasets.find(d => d.id === selectedDatasetId)?.name}"...` : "Ask about your project, paste code, or describe a circuit..."}
             className="flex-1 bg-transparent border-none focus:ring-0 resize-none max-h-32 min-h-[44px] py-2 text-slate-800 placeholder-slate-400"
             rows={1}
           />

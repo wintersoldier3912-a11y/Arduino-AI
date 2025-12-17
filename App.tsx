@@ -8,8 +8,9 @@ import ComponentDatabase from './components/ComponentDatabase';
 import CodeEditor from './components/CodeEditor';
 import CircuitAnalyzer from './components/CircuitAnalyzer';
 import VisionMentor from './components/VisionMentor';
+import KnowledgeBase from './components/KnowledgeBase';
 import Auth from './components/Auth';
-import { View, Project, UserProfile, Difficulty } from './types';
+import { View, Project, UserProfile, Difficulty, Dataset } from './types';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -27,6 +28,26 @@ const App: React.FC = () => {
         debugging: 0.3
     }
   });
+
+  // Knowledge Base State
+  const [datasets, setDatasets] = useState<Dataset[]>([
+    {
+        id: 'd1',
+        name: 'Example: Custom Robot',
+        description: 'Pinouts and motor specs for the V2 Walker.',
+        content: `Project Name: V2 Walker Robot
+Hardware Config:
+- Motor Driver: L298N module connected to Arduino Pins 5,6 (ENA, ENB), 7,8,9,10 (IN1-4).
+- Power: 3S LiPo Battery (11.1V).
+- Servo Controller: PCA9685 at I2C address 0x40.
+- Sensors: MPU6050 Gyro at 0x68.
+
+Known Issues:
+- The servo jitter happens if battery voltage drops below 10.5V.
+- Code requires the Adafruit PWM Servo Driver library.`,
+        updatedAt: Date.now()
+    }
+  ]);
 
   const handleLogin = (name: string) => {
     setUserProfile(prev => ({ ...prev, name }));
@@ -46,7 +67,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (currentView) {
       case View.CHAT:
-        return <ChatInterface initialMessage={chatInitialMessage} userProfile={userProfile} />;
+        return <ChatInterface initialMessage={chatInitialMessage} userProfile={userProfile} datasets={datasets} />;
       case View.PROJECTS:
         return <ProjectLibrary onStartProject={handleStartProject} userProfile={userProfile} />;
       case View.LEARNING_PATH: // Now Reference Hub
@@ -59,6 +80,8 @@ const App: React.FC = () => {
         return <CircuitAnalyzer />;
       case View.VISION:
         return <VisionMentor />;
+      case View.KNOWLEDGE_BASE:
+        return <KnowledgeBase datasets={datasets} setDatasets={setDatasets} />;
       case View.SETTINGS:
         return <div className="text-center text-slate-500 mt-20">Settings not implemented in this demo.</div>;
       case View.DASHBOARD:
