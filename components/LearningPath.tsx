@@ -16,6 +16,11 @@ const LearningPath: React.FC<LearningPathProps> = ({ userProfile }) => {
     const [recentSearches, setRecentSearches] = useState<string[]>(['I2C Communication', 'Pull-up Resistor', 'Debouncing', 'PWM', 'H-Bridge']);
     const [activeType, setActiveType] = useState<'concept' | 'project'>('concept');
 
+    // State for Custom Project Guide
+    const [researchMode, setResearchMode] = useState<'concept' | 'project'>('concept');
+    const [customTitle, setCustomTitle] = useState('');
+    const [customComponents, setCustomComponents] = useState('');
+
     const handleResearch = async (term: string) => {
         if (!term.trim()) return;
         setIsLoading(true);
@@ -51,6 +56,23 @@ const LearningPath: React.FC<LearningPathProps> = ({ userProfile }) => {
         }
     };
 
+    const handleCustomProjectGuide = async () => {
+        if (!customTitle.trim() || !customComponents.trim()) return;
+        setIsLoading(true);
+        setSearchTerm(`Ref: ${customTitle}`);
+        setActiveType('project');
+        try {
+            const componentsList = customComponents.split(',').map(c => c.trim());
+            const result = await generateProjectReference(customTitle, componentsList, userProfile.skillLevel);
+            setExplanation(result);
+        } catch (e) {
+            console.error("Failed to generate custom project guide", e);
+            setExplanation("Could not retrieve project guide. Please check your connection.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <div className="h-full flex flex-col max-w-6xl mx-auto pb-10">
             <div className="mb-6">
@@ -62,27 +84,71 @@ const LearningPath: React.FC<LearningPathProps> = ({ userProfile }) => {
                 {/* Search / History Side */}
                 <div className="md:w-1/3 space-y-6 flex flex-col">
                     <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Research Concept</label>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleResearch(searchTerm)}
-                                placeholder="e.g. SPI Protocol..."
-                                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-arduino-teal outline-none"
-                            />
-                            <svg className="w-5 h-5 text-slate-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
+                        <div className="flex bg-slate-100 p-1 rounded-lg mb-4">
+                            <button
+                                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${researchMode === 'concept' ? 'bg-white shadow text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                                onClick={() => setResearchMode('concept')}
+                            >
+                                Concept
+                            </button>
+                            <button
+                                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${researchMode === 'project' ? 'bg-white shadow text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                                onClick={() => setResearchMode('project')}
+                            >
+                                Project Guide
+                            </button>
                         </div>
-                        <button 
-                            onClick={() => handleResearch(searchTerm)}
-                            disabled={!searchTerm.trim() || isLoading}
-                            className="w-full mt-3 bg-slate-800 text-white py-2 rounded-lg font-medium hover:bg-slate-700 transition-colors disabled:opacity-50"
-                        >
-                            {isLoading && activeType === 'concept' ? 'Researching...' : 'Generate Cheat Sheet'}
-                        </button>
+
+                        {researchMode === 'concept' ? (
+                            <>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">Research Concept</label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleResearch(searchTerm)}
+                                        placeholder="e.g. SPI Protocol..."
+                                        className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-arduino-teal outline-none"
+                                    />
+                                    <svg className="w-5 h-5 text-slate-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </div>
+                                <button 
+                                    onClick={() => handleResearch(searchTerm)}
+                                    disabled={!searchTerm.trim() || isLoading}
+                                    className="w-full mt-3 bg-slate-800 text-white py-2 rounded-lg font-medium hover:bg-slate-700 transition-colors disabled:opacity-50"
+                                >
+                                    {isLoading && activeType === 'concept' ? 'Researching...' : 'Generate Cheat Sheet'}
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">Custom Project Reference</label>
+                                <div className="space-y-3">
+                                    <input 
+                                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-arduino-teal outline-none text-sm"
+                                        placeholder="Project Title (e.g. Smart Garden)"
+                                        value={customTitle}
+                                        onChange={(e) => setCustomTitle(e.target.value)}
+                                    />
+                                    <input 
+                                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-arduino-teal outline-none text-sm"
+                                        placeholder="Components (e.g. ESP32, Soil Sensor)"
+                                        value={customComponents}
+                                        onChange={(e) => setCustomComponents(e.target.value)}
+                                    />
+                                </div>
+                                <button 
+                                    className="w-full mt-3 bg-arduino-teal text-white py-2 rounded-lg font-medium hover:bg-arduino-dark transition-colors disabled:opacity-50"
+                                    disabled={!customTitle || !customComponents || isLoading}
+                                    onClick={handleCustomProjectGuide}
+                                >
+                                    {isLoading && activeType === 'project' ? 'Generating...' : 'Generate Reference Guide'}
+                                </button>
+                            </>
+                        )}
                     </div>
 
                     <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
@@ -102,7 +168,7 @@ const LearningPath: React.FC<LearningPathProps> = ({ userProfile }) => {
 
                     <div className="bg-white p-0 rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col">
                         <div className="px-5 py-4 border-b border-slate-100 bg-slate-50">
-                             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Project Reference Guides</h3>
+                             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Example Project Guides</h3>
                         </div>
                         <div className="flex-1 overflow-y-auto p-2">
                              {INITIAL_PROJECTS.map(project => (

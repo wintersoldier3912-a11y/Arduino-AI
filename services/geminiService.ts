@@ -158,7 +158,7 @@ export const analyzeComponentCompatibility = async (components: string[], projec
     Project Requirement/Context: "${projectContext || "General compatibility check"}"
 
     Please provide a structured analysis covering:
-    1. **Voltage & Logic Levels**: Are there 3.3V/5V mismatches? Need level shifters?
+    1. **Safety Check**: IMMEDIATE WARNINGs for voltage mismatches (e.g. 5V output to 3.3V input) or power limits.
     2. **Pin Usage & Interfaces**: Potential conflicts (I2C addresses, SPI CS pins, UART usage, limited pins).
     3. **Power Budget**: Rough estimate of current consumption vs Arduino limits.
     4. **Missing Essentials**: Are resistors, capacitors, drivers, or external power sources likely needed?
