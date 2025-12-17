@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Component, UserProfile, Difficulty } from '../types';
 import { MOCK_COMPONENTS } from '../constants';
 import { generateComponentRecommendation, analyzeComponentCompatibility } from '../services/geminiService';
@@ -80,7 +80,7 @@ const ComponentDatabase: React.FC<ComponentDatabaseProps> = ({ userProfile, onAs
       });
   };
 
-  const handleCompatibilityCheck = async () => {
+  const handleCompatibilityCheck = useCallback(async () => {
       if (selectedComponentIds.size < 1) return;
       setIsAnalyzingCompatibility(true);
       
@@ -96,7 +96,58 @@ const ComponentDatabase: React.FC<ComponentDatabaseProps> = ({ userProfile, onAs
       } finally {
           setIsAnalyzingCompatibility(false);
       }
-  };
+  }, [selectedComponentIds, projectContext]);
+
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const modifier = isMac ? e.metaKey : e.ctrlKey;
+
+      // Focus Search: Mod + F
+      if (modifier && e.key === 'f') {
+        e.preventDefault();
+        document.getElementById('component-search')?.focus();
+      }
+
+      // Analyze: Mod + Enter
+      if (modifier && e.key === 'Enter') {
+         if (selectedComponentIds.size > 0) {
+             e.preventDefault();
+             handleCompatibilityCheck();
+         }
+      }
+
+      // Select All: Mod + A
+      if (modifier && e.key === 'a') {
+        // If focusing an input/textarea, allow default behavior
+        const target = e.target as HTMLElement;
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
+            return;
+        }
+        e.preventDefault();
+        // Select all filtered components
+        const allIds = filteredComponents.map(c => c.id);
+        setSelectedComponentIds(new Set(allIds));
+      }
+
+      // Clear Selection/Search: Escape
+      if (e.key === 'Escape') {
+          if (selectedComponentIds.size > 0) {
+              // First escape closes panel/clears selection
+              setSelectedComponentIds(new Set());
+              setCompatibilityReport(null);
+          } else if (searchTerm) {
+              // Second escape clears search
+              setSearchTerm('');
+              document.getElementById('component-search')?.blur();
+          }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [filteredComponents, selectedComponentIds, searchTerm, handleCompatibilityCheck]);
 
   const getDifficultyColor = (diff: Difficulty) => {
     switch(diff) {
@@ -108,6 +159,8 @@ const ComponentDatabase: React.FC<ComponentDatabaseProps> = ({ userProfile, onAs
     }
   };
 
+  const areAllSelected = filteredComponents.length > 0 && selectedComponentIds.size === filteredComponents.length;
+
   return (
     <div className="space-y-6 pb-40">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -118,7 +171,7 @@ const ComponentDatabase: React.FC<ComponentDatabaseProps> = ({ userProfile, onAs
         <div className="flex gap-2">
             <button 
                 onClick={() => onAskAI(`I need help choosing a component for...`)}
-                className="bg-arduino-orange text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors"
+                className="bg-arduino-orange text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors shadow-sm"
             >
                 Ask Mentor for Help
             </button>
@@ -126,66 +179,111 @@ const ComponentDatabase: React.FC<ComponentDatabaseProps> = ({ userProfile, onAs
       </div>
 
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
+        <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search Input - Expanded to take available space */}
+            <div className="flex-1 relative group">
                 <input 
+                    id="component-search"
                     type="text"
                     aria-label="Filter components by name or description"
-                    placeholder="Filter by name or description..."
+                    placeholder="Filter by name, description, usage... (Ctrl+F)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-arduino-teal focus:border-transparent outline-none transition-shadow"
+                    className="w-full pl-10 pr-10 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-arduino-teal focus:border-transparent outline-none transition-all shadow-sm group-hover:border-slate-400"
                     onKeyDown={(e) => e.key === 'Enter' && handleGetRecommendations()}
                 />
-                <svg className="w-5 h-5 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 {searchTerm && (
                   <button 
                     onClick={() => setSearchTerm('')}
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 transition-colors"
-                    title="Clear search"
+                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition-colors"
+                    title="Clear search (Esc)"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
                 )}
             </div>
             
-            <div className="flex gap-2 w-full md:w-auto">
-              <select 
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  className="px-4 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-arduino-teal outline-none flex-1 md:flex-none cursor-pointer"
-                  title="Filter by Type"
+            {/* Filters Group */}
+            <div className="flex flex-wrap md:flex-nowrap gap-3">
+              <button
+                  onClick={() => {
+                    if (areAllSelected) {
+                        setSelectedComponentIds(new Set());
+                    } else {
+                        setSelectedComponentIds(new Set(filteredComponents.map(c => c.id)));
+                    }
+                  }}
+                  className={`px-4 py-2.5 border rounded-lg transition-colors whitespace-nowrap text-sm font-medium shadow-sm flex items-center ${
+                      areAllSelected 
+                      ? 'bg-arduino-light text-arduino-dark border-arduino-teal' 
+                      : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'
+                  }`}
+                  title="Select All Visible (Ctrl+A)"
               >
-                  {uniqueTypes.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     {areAllSelected 
+                      ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                     }
+                 </svg>
+                 {areAllSelected ? 'Deselect All' : 'Select All'}
+              </button>
 
-              <select 
-                  value={filterDifficulty}
-                  onChange={(e) => setFilterDifficulty(e.target.value as Difficulty | 'All')}
-                  className="px-4 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-arduino-teal outline-none flex-1 md:flex-none cursor-pointer"
-                  title="Filter by Difficulty"
-              >
-                  {uniqueDifficulties.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+              {/* Filter Type Dropdown */}
+              <div className="relative min-w-[160px] flex-1 md:flex-none">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                  </div>
+                  <select 
+                      value={filterType}
+                      onChange={(e) => setFilterType(e.target.value)}
+                      className="w-full pl-9 pr-8 py-2.5 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-arduino-teal outline-none cursor-pointer appearance-none text-slate-700 font-medium hover:border-slate-400 transition-colors shadow-sm text-sm"
+                      title="Filter by Type"
+                  >
+                      {uniqueTypes.map(t => <option key={t} value={t}>{t === 'All' ? 'All Types' : t}</option>)}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </div>
+              </div>
+
+              {/* Filter Difficulty Dropdown */}
+              <div className="relative min-w-[160px] flex-1 md:flex-none">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  </div>
+                  <select 
+                      value={filterDifficulty}
+                      onChange={(e) => setFilterDifficulty(e.target.value as Difficulty | 'All')}
+                      className="w-full pl-9 pr-8 py-2.5 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-arduino-teal outline-none cursor-pointer appearance-none text-slate-700 font-medium hover:border-slate-400 transition-colors shadow-sm text-sm"
+                      title="Filter by Difficulty"
+                  >
+                      {uniqueDifficulties.map(d => <option key={d} value={d}>{d === 'All' ? 'All Levels' : d}</option>)}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </div>
+              </div>
             </div>
 
             <button
                 onClick={handleGetRecommendations}
                 disabled={!searchTerm || isRecommending}
-                className="px-6 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-colors whitespace-nowrap hidden md:block"
+                className="px-6 py-2.5 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-colors whitespace-nowrap hidden lg:block shadow-sm font-medium text-sm"
             >
                 {isRecommending ? 'Thinking...' : 'AI Suggest'}
             </button>
         </div>
         
         {/* Mobile AI Suggest Button */}
-        <div className="md:hidden">
+        <div className="lg:hidden">
             <button
                 onClick={handleGetRecommendations}
                 disabled={!searchTerm || isRecommending}
-                className="w-full px-6 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                className="w-full px-6 py-2.5 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-colors font-medium text-sm"
             >
                 {isRecommending ? 'Thinking...' : 'AI Suggest'}
             </button>
@@ -313,6 +411,7 @@ const ComponentDatabase: React.FC<ComponentDatabaseProps> = ({ userProfile, onAs
                 <div className="flex items-center space-x-2">
                     <span className="font-bold">{selectedComponentIds.size} Components Selected</span>
                     <span className="text-slate-400 text-sm hidden sm:inline">| Compatibility Checker</span>
+                    <span className="text-slate-500 text-xs ml-2 hidden lg:inline">(Mod+Enter to Analyze)</span>
                 </div>
                 <svg className={`w-5 h-5 transition-transform ${showAnalysisPanel ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -353,6 +452,7 @@ const ComponentDatabase: React.FC<ComponentDatabaseProps> = ({ userProfile, onAs
                                 onClick={handleCompatibilityCheck}
                                 disabled={isAnalyzingCompatibility}
                                 className="flex-1 bg-arduino-teal text-white py-2 rounded-lg font-bold hover:bg-arduino-dark transition-colors disabled:opacity-50 flex justify-center items-center"
+                                title="Ctrl/Cmd + Enter"
                              >
                                 {isAnalyzingCompatibility ? (
                                     <>

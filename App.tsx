@@ -51,9 +51,9 @@ const App: React.FC = () => {
       case View.CHAT:
         return <ChatInterface initialMessage={chatInitialMessage} userProfile={userProfile} />;
       case View.PROJECTS:
-        return <ProjectLibrary onStartProject={handleStartProject} />;
+        return <ProjectLibrary onStartProject={handleStartProject} userProfile={userProfile} />;
       case View.LEARNING_PATH:
-        return <LearningPath />;
+        return <LearningPath userProfile={userProfile} />;
       case View.COMPONENTS:
         return <ComponentDatabase userProfile={userProfile} onAskAI={handleAskAI} />;
       case View.CODE_EDITOR:

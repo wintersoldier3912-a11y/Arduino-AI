@@ -199,3 +199,49 @@ export const analyzeVisionFrame = async (imageBase64: string, projectContext: st
 
     return response.text || "Unable to analyze frame.";
 };
+
+export const generateQuiz = async (topic: string, difficulty: string): Promise<string> => {
+    if (!genAI) initializeGemini();
+    if (!genAI) throw new Error("GenAI not initialized");
+
+    const prompt = `Generate a short quiz about "${topic}" for a ${difficulty} level Arduino student.
+    Return a JSON array of 3 objects. Each object must have:
+    - "question": string
+    - "options": array of 4 strings
+    - "correctAnswerIndex": number (0-3)
+    - "explanation": string (brief explanation of why the answer is correct)
+    Do not use markdown formatting. Just raw JSON.`;
+
+    const response = await genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' }
+    });
+
+    return response.text || "[]";
+};
+
+export const generateCustomProject = async (userIdea: string, skillLevel: string): Promise<string> => {
+    if (!genAI) initializeGemini();
+    if (!genAI) throw new Error("GenAI not initialized");
+
+    const prompt = `Create a detailed Arduino project based on this idea: "${userIdea}". Skill Level: ${skillLevel}.
+    Return a JSON object with:
+    - "id": string (use "custom-${Date.now()}")
+    - "title": string
+    - "description": string
+    - "difficulty": string (Beginner, Intermediate, Advanced, Expert)
+    - "timeEstimate": string
+    - "components": array of strings
+    - "tags": array of strings
+    - "completed": false (boolean)
+    Do not use markdown. Raw JSON only.`;
+
+     const response = await genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' }
+    });
+
+    return response.text || "{}";
+}
