@@ -3,7 +3,7 @@ export enum View {
   DASHBOARD = 'DASHBOARD',
   CHAT = 'CHAT',
   PROJECTS = 'PROJECTS',
-  LEARNING_PATH = 'LEARNING_PATH', // acts as TECHNICAL_REFERENCE
+  LEARNING_PATH = 'LEARNING_PATH',
   COMPONENTS = 'COMPONENTS',
   CODE_EDITOR = 'CODE_EDITOR',
   CIRCUIT_ANALYZER = 'CIRCUIT_ANALYZER',
@@ -21,10 +21,23 @@ export enum Difficulty {
 }
 
 export interface SkillMap {
-  electronics: number; // 0.0 to 1.0
+  electronics: number;
   programming: number;
   iot: number;
   debugging: number;
+}
+
+// Added Component interface for hardware inventory and database
+export interface Component {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+  voltage: string;
+  pins: string;
+  commonUses: string[];
+  difficulty: Difficulty;
+  datasheetUrl?: string;
 }
 
 export interface Project {
@@ -32,22 +45,35 @@ export interface Project {
   title: string;
   description: string;
   difficulty: Difficulty;
-  timeEstimate: string; // e.g., "2 hours"
+  timeEstimate: string;
   components: string[];
   tags: string[];
   completed: boolean;
+  knowledgeBaseId?: string;
 }
 
-export interface Component {
-  id: string;
-  name: string;
-  type: 'Microcontroller' | 'Sensor' | 'Actuator' | 'Module' | 'Basic' | 'Display' | 'Driver' | 'Communication' | 'Power' | 'IC';
-  description: string;
-  voltage: string;
-  pins: string;
-  commonUses: string[];
-  datasheetUrl?: string;
-  difficulty: Difficulty;
+export interface AgentPlanStep {
+  agent: string;
+  task: string;
+}
+
+export interface AgentResult {
+  status: 'ok' | 'fail';
+  output: string;
+  artifacts?: {
+    type: 'code' | 'image' | 'diagram' | 'log';
+    name: string;
+    content: string;
+  }[];
+}
+
+export interface MessageMetadata {
+  intent?: string;
+  plan?: AgentPlanStep[];
+  results?: Record<string, AgentResult>;
+  next_actions?: string[];
+  confidence?: number;
+  requires_confirmation?: boolean;
 }
 
 export interface Message {
@@ -56,11 +82,12 @@ export interface Message {
   text: string;
   timestamp: number;
   isError?: boolean;
+  metadata?: MessageMetadata;
 }
 
 export interface UserProfile {
   name: string;
-  skillLevel: Difficulty; // Overall calculated level
+  skillLevel: Difficulty;
   skills: SkillMap;
 }
 
@@ -70,4 +97,5 @@ export interface Dataset {
   description: string;
   content: string;
   updatedAt: number;
+  sourceType?: 'manual' | 'file' | 'url';
 }

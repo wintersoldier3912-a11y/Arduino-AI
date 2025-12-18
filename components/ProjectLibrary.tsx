@@ -1,15 +1,16 @@
 
 import React, { useState } from 'react';
-import { Project, Difficulty, UserProfile } from '../types';
+import { Project, Difficulty, UserProfile, Dataset } from '../types';
 import { INITIAL_PROJECTS } from '../constants';
 import { generateCustomProject } from '../services/geminiService';
 
 interface ProjectLibraryProps {
     onStartProject: (project: Project) => void;
     userProfile: UserProfile;
+    datasets: Dataset[];
 }
 
-const ProjectLibrary: React.FC<ProjectLibraryProps> = ({ onStartProject, userProfile }) => {
+const ProjectLibrary: React.FC<ProjectLibraryProps> = ({ onStartProject, userProfile, datasets }) => {
   const [filter, setFilter] = useState<Difficulty | 'All'>('All');
   const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
   const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
@@ -37,18 +38,22 @@ const ProjectLibrary: React.FC<ProjectLibraryProps> = ({ onStartProject, userPro
     setExpandedProjectId(prev => prev === id ? null : id);
   };
 
+  const handleLinkDataset = (projectId: string, datasetId: string) => {
+    setProjects(prev => prev.map(p => {
+        if (p.id === projectId) return { ...p, knowledgeBaseId: datasetId };
+        return p;
+    }));
+  };
+
   const handleGenerateProject = async () => {
     if (!ideaInput.trim()) return;
     setIsGenerating(true);
     try {
         const result = await generateCustomProject(ideaInput, userProfile.skillLevel);
         const newProject: Project = JSON.parse(result);
-        
-        // Ensure ID is unique and matches type
         if (!newProject.id) newProject.id = `custom-${Date.now()}`;
-        
         setProjects(prev => [newProject, ...prev]);
-        setExpandedProjectId(newProject.id); // Auto expand new project
+        setExpandedProjectId(newProject.id);
         setShowGenerator(false);
         setIdeaInput('');
     } catch (e) {
@@ -63,7 +68,7 @@ const ProjectLibrary: React.FC<ProjectLibraryProps> = ({ onStartProject, userPro
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
             <h2 className="text-2xl font-bold text-slate-800">Project Library</h2>
-            <p className="text-slate-500">Hands-on projects curated for your learning journey</p>
+            <p className="text-slate-500">Curated and AI-generated builds with optional knowledge linkage.</p>
         </div>
         <div className="flex gap-2">
             <button
@@ -71,7 +76,7 @@ const ProjectLibrary: React.FC<ProjectLibraryProps> = ({ onStartProject, userPro
                 className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-purple-700 transition-all flex items-center shadow-sm"
             >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                AI Dream Project
+                Design Custom Build
             </button>
             <div className="flex bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
                 {['All', ...Object.values(Difficulty)].map((f) => (
@@ -91,7 +96,6 @@ const ProjectLibrary: React.FC<ProjectLibraryProps> = ({ onStartProject, userPro
         </div>
       </div>
 
-      {/* AI Project Generator Modal */}
       {showGenerator && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
               <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden animate-fadeIn">
@@ -100,7 +104,7 @@ const ProjectLibrary: React.FC<ProjectLibraryProps> = ({ onStartProject, userPro
                       <p className="text-purple-100 text-sm">Describe what you want to build, and AI will design it.</p>
                   </div>
                   <div className="p-6">
-                      <label className="block text-sm font-medium text-slate-700 mb-2">I want to build...</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Project Idea</label>
                       <textarea 
                           value={ideaInput}
                           onChange={(e) => setIdeaInput(e.target.value)}
@@ -119,15 +123,7 @@ const ProjectLibrary: React.FC<ProjectLibraryProps> = ({ onStartProject, userPro
                             disabled={!ideaInput.trim() || isGenerating}
                             className="flex-1 py-3 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center justify-center"
                           >
-                              {isGenerating ? (
-                                  <>
-                                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                  </svg>
-                                  Designing...
-                                  </>
-                              ) : 'Generate Project'}
+                              {isGenerating ? 'Designing...' : 'Generate Project'}
                           </button>
                       </div>
                   </div>
@@ -138,6 +134,7 @@ const ProjectLibrary: React.FC<ProjectLibraryProps> = ({ onStartProject, userPro
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
         {filteredProjects.map((project) => {
           const isExpanded = expandedProjectId === project.id;
+          const linkedDataset = datasets.find(d => d.id === project.knowledgeBaseId);
           
           return (
             <div 
@@ -159,7 +156,6 @@ const ProjectLibrary: React.FC<ProjectLibraryProps> = ({ onStartProject, userPro
                   {project.id.startsWith('custom') ? (
                        <div className="w-full h-full flex items-center justify-center relative z-10">
                            <svg className="w-16 h-16 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                           <span className="absolute bottom-2 right-2 px-2 py-0.5 bg-purple-600 text-white text-[10px] uppercase font-bold rounded">AI Custom</span>
                        </div>
                   ) : (
                       <img 
@@ -183,9 +179,25 @@ const ProjectLibrary: React.FC<ProjectLibraryProps> = ({ onStartProject, userPro
                         {project.description}
                     </p>
                     
-                    {/* Expanded Details */}
                     {isExpanded && (
                         <div className="mb-4 pt-4 border-t border-slate-100 animate-fadeIn space-y-4">
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Knowledge Context</h4>
+                                <div className="flex gap-2 items-center">
+                                    <select 
+                                        className="flex-1 bg-slate-50 border border-slate-200 rounded text-xs p-1 outline-none"
+                                        value={project.knowledgeBaseId || ''}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={(e) => handleLinkDataset(project.id, e.target.value)}
+                                    >
+                                        <option value="">No Dataset Linked</option>
+                                        {datasets.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                    </select>
+                                    {linkedDataset && (
+                                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Live context ready"></span>
+                                    )}
+                                </div>
+                            </div>
                             <div>
                                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Required Components</h4>
                                 <ul className="space-y-1">
@@ -196,15 +208,6 @@ const ProjectLibrary: React.FC<ProjectLibraryProps> = ({ onStartProject, userPro
                                         </li>
                                     ))}
                                 </ul>
-                            </div>
-                            <div>
-                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Time Estimate</h4>
-                                <div className="text-sm text-slate-700 flex items-center">
-                                    <svg className="w-4 h-4 mr-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    {project.timeEstimate}
-                                </div>
                             </div>
                         </div>
                     )}
@@ -239,7 +242,7 @@ const ProjectLibrary: React.FC<ProjectLibraryProps> = ({ onStartProject, userPro
                           : 'text-arduino-teal hover:text-arduino-dark'
                       }`}
                     >
-                        Start Project
+                        Start Build
                         <svg className={`w-4 h-4 ml-1 ${isExpanded ? '' : 'transform group-hover:translate-x-1 transition-transform'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                         </svg>
