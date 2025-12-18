@@ -31,6 +31,7 @@ export interface MultiAgentResponse {
     metadata: any;
 }
 
+// Fixed: Removed invalid 'const' keyword from Promise type argument to resolve syntax and scoping errors
 export const sendMessageToGemini = async (message: string): Promise<MultiAgentResponse> => {
     const chat = getChatSession();
     try {
@@ -90,7 +91,24 @@ function decodeBase64(base64: string): Uint8Array {
 
 export const analyzeCode = async (code: string): Promise<string> => {
     const ai = getAI();
-    const prompt = `Task: Arduino Sketch Analysis\nRole: debug-agent\nAnalyze this Arduino .ino code for common logic errors like blocking delays, missing Serial.begin, or improper pin initialization.\nCode:\n${code}`;
+    const prompt = `Task: Arduino Sketch Linting & Analysis
+Role: debug-agent
+Analyze the following Arduino .ino Sketch for syntax errors, logical bugs, and style improvements.
+Check specifically for:
+- Blocking code (excessive delay usage)
+- Memory management issues (String object usage on AVR)
+- Pin initialization logic
+- Missing Serial.begin if Serial is used
+- Variable scope and global conflicts
+
+Return a JSON object with:
+1. "summary": A high-level overview of the code quality.
+2. "issues": An array of objects: { "line": number, "severity": "error"|"warning"|"info", "message": string, "suggestion": string }
+3. "stats": { "complexity": "low"|"medium"|"high", "estimatedMemoryUsage": "string" }
+
+Code:
+${code}`;
+
     const response = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
         contents: prompt,
